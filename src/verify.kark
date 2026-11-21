@@ -1,0 +1,16 @@
+// Integration verification for the Karkain-Desktop public API.
+import desktop
+
+func main() {
+    let app = new_desktop_app("Editor", "1.0")
+    app = add_menu(app, "File")
+    app = add_menu(app, "Edit")
+    app = launch(app)
+    assert_eq(desktop_state(app), "running")
+    println(describe_desktop(app))
+
+    let mini = minimize(app)
+    assert_eq(desktop_state(mini), "minimized")
+    let closed = close(restore(mini))
+    assert_eq(desktop_state(closed), "closed")
+}

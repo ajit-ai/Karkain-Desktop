@@ -1,0 +1,61 @@
+// Native tests for Karkain-Desktop.
+
+func sample_app() {
+    let a = new_desktop_app("Editor", "1.0")
+    a = add_menu(a, "File")
+    return add_menu(a, "Help")
+}
+
+func test_new_desktop_app() {
+    let a = new_desktop_app("Editor", "1.0")
+    assert_eq(desktop_name(a), "Editor")
+    assert_eq(desktop_version(a), "1.0")
+    assert_eq(desktop_state(a), "created")
+}
+
+func test_add_menu() {
+    let a = sample_app()
+    assert_eq(menu_count(a), 2)
+    assert(has_menu(a, "File"))
+    assert_eq(menu(a, 0), "File")
+    assert_eq(menu(a, 1), "Help")
+}
+
+func test_add_menu_unique() {
+    assert_eq(menu_count(add_menu(sample_app(), "File")), 2)
+}
+
+func test_launch() {
+    let a = launch(new_desktop_app("Editor", "1"))
+    assert_eq(desktop_state(a), "running")
+    assert_eq(desktop_state(launch(a)), "running")
+}
+
+func test_minimize_restore() {
+    let a = launch(sample_app())
+    let m = minimize(a)
+    assert_eq(desktop_state(m), "minimized")
+    let r = restore(m)
+    assert_eq(desktop_state(r), "running")
+    assert_eq(menu_count(r), 2)
+}
+
+func test_minimize_when_created() {
+    let a = new_desktop_app("Editor", "1")
+    assert_eq(desktop_state(minimize(a)), "created")
+}
+
+func test_close() {
+    let a = close(launch(sample_app()))
+    assert_eq(desktop_state(a), "closed")
+}
+
+func test_set_desktop_state() {
+    let a = set_desktop_state(sample_app(), "failed")
+    assert_eq(desktop_state(a), "failed")
+    assert_eq(menu_count(a), 2)
+}
+
+func test_describe_desktop() {
+    assert_eq(describe_desktop(sample_app()), "Editor@1.0:created menus=2")
+}

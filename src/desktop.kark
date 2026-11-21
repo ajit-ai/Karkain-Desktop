@@ -1,0 +1,112 @@
+// Karkain-Desktop - desktop application lifecycle and menu model.
+// Karkain Language v1.2.0 verified baseline (tag v1.2.0,
+// commit 77d70693e1e3134dac312a303bffafa7d50fa988).
+//
+// Scope boundary: this framework models desktop application state and
+// menu composition in portable Karkain. It does not create OS windows,
+// system trays or native menus; platform adapters are outside the core.
+//
+// Representation: [name, version, state, menu, menu, ...].
+// Arrays are values; mutating functions return the updated application.
+
+// new_desktop_app creates an application in the "created" state.
+public func new_desktop_app(name, version) {
+    let a = []
+    a = push(a, name)
+    a = push(a, version)
+    a = push(a, "created")
+    return a
+}
+
+// desktop_name returns the application name.
+public func desktop_name(app) {
+    return app[0]
+}
+
+// desktop_version returns the declared version.
+public func desktop_version(app) {
+    return app[1]
+}
+
+// desktop_state returns the lifecycle state.
+public func desktop_state(app) {
+    return app[2]
+}
+
+// set_desktop_state sets the state directly for adapters and tests.
+public func set_desktop_state(app, state) {
+    let out = []
+    out = push(out, app[0])
+    out = push(out, app[1])
+    out = push(out, state)
+    let i = 3
+    while (i < len(app)) {
+        out = push(out, app[i])
+        i = i + 1
+    }
+    return out
+}
+
+// add_menu appends a named menu entry.
+public func add_menu(app, name) {
+    if has_menu(app, name) {
+        return app
+    }
+    return push(app, name)
+}
+
+// has_menu reports whether a menu is present.
+public func has_menu(app, name) {
+    let i = 3
+    while (i < len(app)) {
+        if app[i] == name {
+            return true
+        }
+        i = i + 1
+    }
+    return false
+}
+
+// menu_count returns the number of menus.
+public func menu_count(app) {
+    return len(app) - 3
+}
+
+// menu returns the nth menu name.
+public func menu(app, n) {
+    return app[3 + n]
+}
+
+// launch moves a created application to running.
+public func launch(app) {
+    if desktop_state(app) == "created" {
+        return set_desktop_state(app, "running")
+    }
+    return app
+}
+
+// minimize moves a running application to minimized.
+public func minimize(app) {
+    if desktop_state(app) == "running" {
+        return set_desktop_state(app, "minimized")
+    }
+    return app
+}
+
+// restore moves a minimized application back to running.
+public func restore(app) {
+    if desktop_state(app) == "minimized" {
+        return set_desktop_state(app, "running")
+    }
+    return app
+}
+
+// close moves an application to closed.
+public func close(app) {
+    return set_desktop_state(app, "closed")
+}
+
+// describe_desktop builds a one-line desktop diagnostic.
+public func describe_desktop(app) {
+    return desktop_name(app) + "@" + desktop_version(app) + ":" + desktop_state(app) + " menus=" + str(menu_count(app))
+}
