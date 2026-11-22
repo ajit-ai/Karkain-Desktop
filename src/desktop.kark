@@ -110,3 +110,196 @@ public func close(app) {
 public func describe_desktop(app) {
     return desktop_name(app) + "@" + desktop_version(app) + ":" + desktop_state(app) + " menus=" + str(menu_count(app))
 }
+
+// ---------------------------------------------------------------------------
+// Phase 2 additions. Phase 1 lifecycle/menu API is unchanged. OS integration,
+// filesystem persistence, installation and updates are BLOCKED by missing
+// platform/file builtins; only contracts and in-memory models are provided.
+
+// new_app_config creates an application configuration model.
+public func new_app_config(name, version) {
+    let c = []
+    c = push(c, name)
+    c = push(c, version)
+    return c
+}
+
+// set_setting adds or replaces a configuration key.
+public func set_setting(config, key, value) {
+    let out = []
+    out = push(out, config[0])
+    out = push(out, config[1])
+    let i = 2
+    while (i < len(config)) {
+        if config[i] == key {
+            i = i + 2
+        } else {
+            out = push(out, config[i])
+            out = push(out, config[i + 1])
+            i = i + 2
+        }
+    }
+    out = push(out, key)
+    out = push(out, value)
+    return out
+}
+
+// setting_get returns a configured value or a fallback.
+public func setting_get(config, key, fallback) {
+    let i = 2
+    while (i < len(config)) {
+        if config[i] == key { return config[i + 1] }
+        i = i + 2
+    }
+    return fallback
+}
+
+// validate_config rejects empty names or versions.
+public func validate_config(config) {
+    if len(config[0]) == 0 { return false }
+    if len(config[1]) == 0 { return false }
+    return true
+}
+
+// merge_config applies overrides on top of defaults.
+public func merge_config(defaults, overrides) {
+    let out = defaults
+    let i = 2
+    while (i < len(overrides)) {
+        let value = setting_get(out, overrides[i], "")
+        if value == "" {
+            out = set_setting(out, overrides[i], overrides[i + 1])
+        }
+        i = i + 2
+    }
+    return out
+}
+
+// new_lifecycle_events creates an empty lifecycle log.
+public func new_lifecycle_events() {
+    return []
+}
+
+// record_lifecycle appends a lifecycle event.
+public func record_lifecycle(events, state, detail) {
+    let out = events
+    out = push(out, state)
+    out = push(out, detail)
+    return out
+}
+
+// lifecycle_count returns the number of recorded events.
+public func lifecycle_count(events) { return len(events) / 2 }
+
+// last_lifecycle returns the most recent state or "".
+public func last_lifecycle(events) {
+    if len(events) == 0 { return "" }
+    return events[len(events) - 2]
+}
+
+// new_recovery creates recovery metadata.
+public func new_recovery(id, reason) {
+    let r = []
+    r = push(r, id)
+    r = push(r, reason)
+    r = push(r, "pending")
+    return r
+}
+
+// complete_recovery marks recovery complete.
+public func complete_recovery(recovery) {
+    let out = []
+    out = push(out, recovery[0])
+    out = push(out, recovery[1])
+    out = push(out, "complete")
+    return out
+}
+
+// recovery_state returns a recovery state.
+public func recovery_state(recovery) { return recovery[2] }
+
+// new_os_adapter declares an OS adapter with capabilities.
+public func new_os_adapter(name, capabilities) {
+    let a = []
+    a = push(a, name)
+    a = push(a, capabilities)
+    return a
+}
+
+// os_supports reports whether an OS capability is advertised.
+public func os_supports(adapter, capability) {
+    return contains(adapter[1], capability)
+}
+
+// tray_contract documents the system-tray interface.
+public func tray_contract() { return "platform.tray.create(title,icon)" }
+
+// notification_contract documents the notification interface.
+public func notification_contract() { return "platform.notify(title,message)" }
+
+// file_association_contract documents the file-association interface.
+public func file_association_contract() { return "platform.associate(extension,handler)" }
+
+// clipboard_contract documents the clipboard interface.
+public func clipboard_contract() { return "platform.clipboard.read/write" }
+
+// dialog_contract documents the file-dialog interface.
+public func dialog_contract() { return "platform.dialog.open(mode)" }
+
+// os_version_contract documents OS capability discovery.
+public func os_version_contract() { return "platform.os.version()" }
+
+// new_package creates package metadata.
+public func new_package(name, version, platform) {
+    let p = []
+    p = push(p, name)
+    p = push(p, version)
+    p = push(p, platform)
+    return p
+}
+
+// validate_package checks name, version and platform presence.
+public func validate_package(package) {
+    if len(package[0]) == 0 { return false }
+    if len(package[1]) == 0 { return false }
+    if len(package[2]) == 0 { return false }
+    return true
+}
+
+// add_package_dependency records a declared dependency.
+public func add_package_dependency(package, name, version) {
+    let out = package
+    out = push(out, name)
+    out = push(out, version)
+    return out
+}
+
+// package_dependency_count returns the number of declared dependencies.
+public func package_dependency_count(package) { return (len(package) - 3) / 2 }
+
+// installation_plan documents the required OS/file operations.
+public func installation_plan(package) {
+    return "install:" + package[0] + "@" + package[1] + "->" + package[2]
+}
+
+// update_plan documents the update lifecycle.
+public func update_plan(package) {
+    return "update:" + package[0] + "@" + package[1]
+}
+
+// rollback_plan documents the rollback lifecycle.
+public func rollback_plan(package) {
+    return "rollback:" + package[0] + "@" + package[1]
+}
+
+// desktop_gui_contract documents Desktop to GUI integration.
+public func desktop_gui_contract() { return "gui.configure(title,width,height)" }
+
+// desktop_to_gui_config builds a GUI configuration from desktop settings.
+public func desktop_to_gui_config(config) {
+    let out = []
+    out = push(out, config[0])
+    out = push(out, setting_get(config, "width", 800))
+    out = push(out, setting_get(config, "height", 600))
+    return out
+}

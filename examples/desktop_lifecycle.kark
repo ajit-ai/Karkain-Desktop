@@ -1,0 +1,24 @@
+// Karkain-Desktop Phase 2 example: lifecycle, config and package models.
+import desktop
+
+func main() {
+    let config = set_setting(set_setting(new_app_config("Editor", "1.0"), "width", 1024), "height", 768)
+    let events = record_lifecycle(record_lifecycle(new_lifecycle_events(), "launch", "ok"), "stop", "done")
+
+    let pkg = add_package_dependency(new_package("Editor", "1.0", "windows"), "gui", "1.0")
+    println("config=" + str(validate_config(config)))
+    println("events=" + str(lifecycle_count(events)))
+    println(installation_plan(pkg))
+
+    let adapter = new_os_adapter("test", "tray")
+    println("notify=" + str(os_supports(adapter, "notify")))
+
+    let app = close(launch(sample_app_for_example()))
+    println("state=" + desktop_state(app))
+    let gui_cfg = desktop_to_gui_config(config)
+    println("gui_width=" + gui_cfg[1])
+}
+
+func sample_app_for_example() {
+    return add_menu(new_desktop_app("Editor", "1.0"), "File")
+}

@@ -59,3 +59,81 @@ func test_set_desktop_state() {
 func test_describe_desktop() {
     assert_eq(describe_desktop(sample_app()), "Editor@1.0:created menus=2")
 }
+
+// --- Phase 2 regression ---
+
+func test_phase1_regression() {
+    let a = launch(sample_app())
+    assert_eq(desktop_state(a), "running")
+    assert_eq(menu_count(a), 2)
+    assert(has_menu(a, "File"))
+    assert_eq(desktop_state(close(a)), "closed")
+}
+
+// --- Phase 2 additions ---
+
+func test_app_config() {
+    let c = set_setting(set_setting(new_app_config("Editor", "1.0"), "width", 1024), "height", 768)
+    assert(validate_config(c))
+    assert_eq(setting_get(c, "width", 0), 1024)
+    assert_eq(setting_get(c, "missing", "fallback"), "fallback")
+    assert(validate_config(new_app_config("", "1")) == false)
+}
+
+func test_config_merge() {
+    let defaults = set_setting(new_app_config("App", "1"), "theme", "dark")
+    let overrides = set_setting(new_app_config("App", "1"), "theme", "light")
+    let merged = merge_config(defaults, overrides)
+    assert_eq(setting_get(merged, "theme", ""), "dark")
+}
+
+func test_lifecycle_events() {
+    let e = record_lifecycle(record_lifecycle(new_lifecycle_events(), "launch", "ok"), "stop", "done")
+    assert_eq(lifecycle_count(e), 2)
+    assert_eq(last_lifecycle(e), "stop")
+    assert_eq(last_lifecycle(new_lifecycle_events()), "")
+}
+
+func test_recovery_metadata() {
+    let r = new_recovery("r1", "crash")
+    assert_eq(recovery_state(r), "pending")
+    assert_eq(recovery_state(complete_recovery(r)), "complete")
+    assert_eq(recovery_state(r), "pending")
+}
+
+func test_os_adapter_contracts() {
+    let a = new_os_adapter("test", "tray,notify")
+    assert(os_supports(a, "tray"))
+    assert(os_supports(a, "clipboard") == false)
+    assert_eq(tray_contract(), "platform.tray.create(title,icon)")
+    assert_eq(notification_contract(), "platform.notify(title,message)")
+    assert_eq(file_association_contract(), "platform.associate(extension,handler)")
+    assert_eq(clipboard_contract(), "platform.clipboard.read/write")
+    assert_eq(dialog_contract(), "platform.dialog.open(mode)")
+    assert_eq(os_version_contract(), "platform.os.version()")
+}
+
+func test_package_metadata() {
+    let p = new_package("Editor", "2.0", "windows")
+    assert(validate_package(p))
+    assert(validate_package(new_package("", "2", "windows")) == false)
+    let withdep = add_package_dependency(p, "gui", "1.0")
+    assert_eq(package_dependency_count(withdep), 1)
+    assert_eq(package_dependency_count(p), 0)
+}
+
+func test_package_plans() {
+    let p = new_package("Editor", "2.0", "windows")
+    assert_eq(installation_plan(p), "install:Editor@2.0->windows")
+    assert_eq(update_plan(p), "update:Editor@2.0")
+    assert_eq(rollback_plan(p), "rollback:Editor@2.0")
+}
+
+func test_gui_integration_contract() {
+    assert_eq(desktop_gui_contract(), "gui.configure(title,width,height)")
+    let cfg = set_setting(set_setting(new_app_config("Editor", "1"), "width", 900), "height", 700)
+    let gui_cfg = desktop_to_gui_config(cfg)
+    assert_eq(gui_cfg[0], "Editor")
+    assert_eq(gui_cfg[1], 900)
+    assert_eq(gui_cfg[2], 700)
+}
